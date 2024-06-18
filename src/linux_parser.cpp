@@ -4,6 +4,8 @@
 #include <vector>
 
 #include "linux_parser.h"
+#include "format.h"
+#include "math.h"
 
 #include <iostream>
 
@@ -236,50 +238,144 @@ int LinuxParser::RunningProcesses() {
 
 // TODO: Read and return the command associated with a process
 // REMOVE: [[maybe_unused]] once you define the function
-string LinuxParser::Command(int pid[[maybe_unused]]) { 
-  
-  
-  
-  
-  return string();
+string LinuxParser::Command(int pid) { 
+  string line;    
+  std::ifstream input_file(kProcDirectory + std::to_string(pid) + kCmdlineFilename);
+
+  if (input_file.is_open()) {
+    std::getline(input_file, line);
+  }  
+
+  return line;
 }
 
 // TODO: Read and return the memory used by a process
 // REMOVE: [[maybe_unused]] once you define the function
-string LinuxParser::Ram(int pid[[maybe_unused]]) { 
-  
-  
-  
-  
-  return string();
+string LinuxParser::Ram(int pid) { 
+  string line;
+  string key;
+  int value;
+  string ram;
+  std::ifstream input_file(kProcDirectory + std::to_string(pid) + kStatusFilename);
+
+  if (input_file.is_open()) {
+    while (std::getline(input_file, line)){
+      std::istringstream linestream(line);
+      linestream >> key >> value;     
+
+      if(key == "VmSize:"){
+        /*std::cout << line << "\n"; //debugging
+        std::cout << "key = " << key << "\n"; //debugging
+        std::cout << "value = " << value << "\n"; //debugging*/
+        //ram = std::to_string(value/1000);
+        ram = std::to_string(value);
+      }  
+    }
+  } 
+  return ram;
 }
 
 // TODO: Read and return the user ID associated with a process
 // REMOVE: [[maybe_unused]] once you define the function
-string LinuxParser::Uid(int pid[[maybe_unused]]) { 
-  
-  
-  
-  
-  return string();
+string LinuxParser::Uid(int pid) { 
+  string line;
+  string key;
+  long value;
+  string UID;
+  std::ifstream input_file(kProcDirectory + std::to_string(pid) + kStatusFilename);
+
+  if (input_file.is_open()) {
+    while (std::getline(input_file, line)){
+      std::istringstream linestream(line);
+      linestream >> key >> value;     
+
+      if(key == "Uid:"){
+        /*std::cout << line << "\n"; //debugging
+        std::cout << "key = " << key << "\n"; //debugging
+        std::cout << "value = " << value << "\n"; //debugging*/
+        UID = std::to_string(value);
+      }  
+    }
+  }  
+  return UID;
 }
 
 // TODO: Read and return the user associated with a process
 // REMOVE: [[maybe_unused]] once you define the function
-string LinuxParser::User(int pid[[maybe_unused]]) { 
+string LinuxParser::User(int pid) { 
   
   
   
   
-  return string();
+  return "Jose";
 }
 
 // TODO: Read and return the uptime of a process
 // REMOVE: [[maybe_unused]] once you define the function
-long LinuxParser::UpTime(int pid[[maybe_unused]]) { 
+long LinuxParser::UpTime(int pid) { 
+  string line;
+  string temp_key;  
+  vector<string> keys;
+  long uptime_secs;
+  std::ifstream input_file(kProcDirectory + std::to_string(pid) + kStatFilename);
+
+  if (input_file.is_open()) {
+    std::getline(input_file, line);
+    std::istringstream linestream(line);   
+    for(int i = 0; i < 22; i++){      
+      linestream >> temp_key;
+      keys.push_back(temp_key);
+    }
+
+    uptime_secs = std::stol(keys[21])/sysconf(_SC_CLK_TCK);
+    /*std::cout << "line = " << line << "\n"; //debugging
+    std::cout << "uptime key = " << keys[21] << "\n"; //debugging
+    std::cout << "uptime_secs = " << uptime_secs << "\n"; //debugging*/
+  }  
+  return uptime_secs;
+}
+
+float LinuxParser::ProcessLoad(int pid){
+  string line;
+  string temp_key;  
+  vector<string> keys;
   
+  std::ifstream input_file(kProcDirectory + std::to_string(pid) + kStatFilename);
+
+  if (input_file.is_open()){
+    std::getline(input_file, line);
+    std::istringstream linestream(line);   
+    for(int i = 0; i < 22; i++){      
+      linestream >> temp_key;
+      keys.push_back(temp_key);
+    }
+  }  
+
   
+  long uptime = LinuxParser::UpTime();
+  long utime = std::stol(keys[13]);
+  long stime = std::stol(keys[14]);
+  long cutime = std::stol(keys[15]);
+  long cstime = std::stol(keys[16]);
+  long starttime = std::stol(keys[21]);
+
+  long total_time = utime + stime;
+  total_time = total_time + cutime + cstime;
+  long seconds = uptime -(starttime/sysconf(_SC_CLK_TCK));
+  float load = float(total_time/sysconf(_SC_CLK_TCK))/float(seconds);
   
-  
-  return 0;
+  /*
+  std::cout << "line = " << line << "\n"; //debugging
+  std::cout << "uptime = " << uptime << "\n"; //debugging
+  std::cout << "utime = " << utime << "\n"; //debugging
+  std::cout << "stime = " << stime << "\n"; //debugging
+  std::cout << "cutime = " << cutime << "\n"; //debugging
+  std::cout << "cstime = " << cstime << "\n"; //debugging
+  std::cout << "starttime = " << starttime << "\n"; //debugging
+  std::cout << "total_time = " << total_time << "\n"; //debugging
+  std::cout << "load = " << load << "\n"; //debugging
+  */
+
+  //return float(pid)/float(100);
+  return load;
 }
