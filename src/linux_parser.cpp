@@ -134,11 +134,10 @@ long LinuxParser::Jiffies() {
 
 // TODO: Read and return the number of active jiffies for a PID
 // REMOVE: [[maybe_unused]] once you define the function
-long LinuxParser::ActiveJiffies(int pid[[maybe_unused]]) { 
+long LinuxParser::ActiveJiffies(int pid[[maybe_unused]]) {  
   
-  
-  
-  
+  // NOT USED
+
   return 0;
 }
 
@@ -181,9 +180,7 @@ long LinuxParser::IdleJiffies() {
 // TODO: Read and return CPU utilization
 vector<string> LinuxParser::CpuUtilization() { 
   
-  
-  
-  
+  //NOT USED
   
   return {};
 }
@@ -244,7 +241,8 @@ string LinuxParser::Command(int pid) {
 
   if (input_file.is_open()) {
     std::getline(input_file, line);
-  }  
+  }
+  input_file.close();
 
   return line;
 }
@@ -254,7 +252,7 @@ string LinuxParser::Command(int pid) {
 string LinuxParser::Ram(int pid) { 
   string line;
   string key;
-  int value;
+  float value;
   string ram;
   std::ifstream input_file(kProcDirectory + std::to_string(pid) + kStatusFilename);
 
@@ -268,19 +266,20 @@ string LinuxParser::Ram(int pid) {
         std::cout << "key = " << key << "\n"; //debugging
         std::cout << "value = " << value << "\n"; //debugging*/
         //ram = std::to_string(value/1000);
-        ram = std::to_string(value);
+        ram = std::to_string(value/1000);
       }  
     }
   } 
   return ram;
 }
 
+
 // TODO: Read and return the user ID associated with a process
 // REMOVE: [[maybe_unused]] once you define the function
 string LinuxParser::Uid(int pid) { 
   string line;
   string key;
-  long value;
+  string value;
   string UID;
   std::ifstream input_file(kProcDirectory + std::to_string(pid) + kStatusFilename);
 
@@ -293,7 +292,7 @@ string LinuxParser::Uid(int pid) {
         /*std::cout << line << "\n"; //debugging
         std::cout << "key = " << key << "\n"; //debugging
         std::cout << "value = " << value << "\n"; //debugging*/
-        UID = std::to_string(value);
+        UID = value;
       }  
     }
   }  
@@ -303,11 +302,29 @@ string LinuxParser::Uid(int pid) {
 // TODO: Read and return the user associated with a process
 // REMOVE: [[maybe_unused]] once you define the function
 string LinuxParser::User(int pid) { 
-  
-  
-  
-  
-  return "Jose";
+  string UID = LinuxParser::Uid(pid);
+  string line;
+  string user_key;
+  string x_key;
+  string uid_key;
+  string USER = "user0";
+  std::ifstream input_file(kPasswordPath);
+
+  if (input_file.is_open()) {
+    while (std::getline(input_file, line)){
+      std::replace(line.begin(), line.end(), ':', ' ');
+      std::istringstream linestream(line);
+      linestream >> user_key >> x_key >> uid_key;
+
+      if(uid_key == UID){USER = user_key;}
+      /*std::cout << "line_post = " << line << "\n"; //debugging
+      std::cout << "user_key = " << user_key << "\n";//debugging
+      std::cout << "x_key = " << x_key << "\n"; //debugging
+      std::cout << "uid_key = " << uid_key << "\n"; //debugging
+      std::cout << "UID = " << UID << "\n"; //debugging*/
+    }
+  }  
+  return USER;
 }
 
 // TODO: Read and return the uptime of a process
@@ -331,8 +348,9 @@ long LinuxParser::UpTime(int pid) {
     /*std::cout << "line = " << line << "\n"; //debugging
     std::cout << "uptime key = " << keys[21] << "\n"; //debugging
     std::cout << "uptime_secs = " << uptime_secs << "\n"; //debugging*/
-  }  
-  return uptime_secs;
+  }
+  input_file.close();
+  return LinuxParser::UpTime() - uptime_secs;
 }
 
 float LinuxParser::ProcessLoad(int pid){
@@ -351,18 +369,17 @@ float LinuxParser::ProcessLoad(int pid){
     }
   }  
 
-  
-  long uptime = LinuxParser::UpTime();
-  long utime = std::stol(keys[13]);
-  long stime = std::stol(keys[14]);
-  long cutime = std::stol(keys[15]);
-  long cstime = std::stol(keys[16]);
-  long starttime = std::stol(keys[21]);
+  // https://stackoverflow.com/questions/16726779/how-do-i-get-the-total-cpu-usage-of-an-application-from-proc-pid-stat/16736599#16736599
+  float uptime = LinuxParser::UpTime();
+  float utime = std::stol(keys[13]);
+  float stime = std::stol(keys[14]);
+  float cutime = std::stol(keys[15]);
+  float cstime = std::stol(keys[16]);
+  float starttime = std::stol(keys[21]);
 
-  long total_time = utime + stime;
-  total_time = total_time + cutime + cstime;
-  long seconds = uptime -(starttime/sysconf(_SC_CLK_TCK));
-  float load = float(total_time/sysconf(_SC_CLK_TCK))/float(seconds);
+  float total_time = utime + stime + cutime + cstime;
+  float seconds = uptime - (starttime/sysconf(_SC_CLK_TCK));
+  float load = total_time / sysconf(_SC_CLK_TCK) / seconds;
   
   /*
   std::cout << "line = " << line << "\n"; //debugging
@@ -375,7 +392,5 @@ float LinuxParser::ProcessLoad(int pid){
   std::cout << "total_time = " << total_time << "\n"; //debugging
   std::cout << "load = " << load << "\n"; //debugging
   */
-
-  //return float(pid)/float(100);
   return load;
 }

@@ -21,30 +21,22 @@ Processor& System::Cpu() { return cpu_; }
 // TODO: Return a container composed of the system's processes
 vector<Process>& System::Processes() { 
     
-    /*
-    //https://knowledge.udacity.com/questions/529186
     processes_.clear();
     vector<int> pids = LinuxParser::Pids();
     for(int pid : pids){
         Process process;
         process.setPid(pid);
-        process.CpuUtilization();
+        process.CalculateUser(pid);
+        process.CalculateCommand(pid);
+        process.CalculateRam(pid);
+        process.CalculateCpuUtilization(pid);   
+        process.CalculateUpTime(pid);
+
         processes_.emplace_back(process);
-    }
-    std::sort(processes_.begin(), processes_.end());
-    std::reverse(processes_.begin(),processes_.end());
-    */
-    processes_.clear();
-    vector<int> pids = LinuxParser::Pids();
-    for(int pid : pids){
-        Process process;
-        process.setPid(pid);
-        process.CalculateCpuUtilization(pid);
-        processes_.emplace_back(process);
-    }
-      
-    
-    return processes_; }
+        sort(processes_.begin(), processes_.end());        
+    }    
+    return processes_;
+}
 
 // TODO [COMPLETE]: Return the system's kernel identifier (string)
 std::string System::Kernel() { return LinuxParser::Kernel(); }
